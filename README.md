@@ -58,7 +58,7 @@ For HPC clusters with SLURM:
 
 ```bash
 # Submit environment setup job
-sbatch setup_chimera_env.sh
+sbatch install_requirements.sh
 ```
 
 ### Requirements
@@ -100,7 +100,7 @@ chimera-bcr-prediction/
 │   └── mpMRI_slide_level_radiomic_feature_extraction.py  # Feature extraction
 ├── config.yaml                      # Configuration file
 ├── requirements.txt                  # Python dependencies
-├── setup_chimera_env.sh             # Environment setup script
+├── install_requirements.sh             # Environment setup script
 ├── run_main.sh                      # Training SBATCH script
 ├── run_optuna.sh                    # Optimization SBATCH script
 ├── run_inference.sh                 # Inference SBATCH script
@@ -361,13 +361,7 @@ sbatch run_inference.sh
 - **Optimization**: 64GB RAM, 1 GPU, 8 CPUs, 48 hours
 - **Inference**: 16GB RAM, 1 GPU (optional), 8 CPUs
 
-## 🤝 Contributing
 
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit changes (`git commit -m 'Add amazing feature'`)
-4. Push to branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
 
 ## 📝 License
 
@@ -379,7 +373,7 @@ If you use this code in your research, please cite:
 
 ```bibtex
 @article{chimera2024,
-  title={Multi-Modal MambaFormer for Biochemical Recurrence Prediction in Prostate Cancer},
+  title={Uncertainty-aware Multi-Modal MambaFormer for Biochemical Recurrence Prediction in Prostate Cancer},
   author={Raju Gudhe, Hesam Hakimnejad, Pekka Ruusuvuori, Minna Kaikkonen-Määttä},
   journal={Journal Name},
   year={2024},
