@@ -1,0 +1,76 @@
+# Task1 Configuration File
+# Modality options: 'mri', 'wsi', 'multi'
+modality: 'multi'  # Change this to 'mri', 'wsi', or 'multi'
+
+# Data paths
+data:
+  mri_data_dir: "data/radiology/radiomic_features"
+  wsi_features_dir: "data/pathology/features/features"
+  clinical_file: "data/clinical_data.csv"
+  max_mri_slices: 50
+  max_wsi_patches: 20000
+
+
+model:
+  d_model: 256
+  n_layers: 5
+  d_state: 64
+  d_conv: 6
+  expand: 2
+  n_heads: 16
+  dropout: 0.12831731985415082
+  max_slices_attention: 1000
+  max_patches_attention: 5000
+
+# Training parameters
+training:
+  epochs: 50
+  batch_size: 2
+  learning_rate: 0.000013175311088623683
+  weight_decay: 0.0000025721768730592597
+  early_stopping_patience: 8
+  gradient_clip: 1.7166096661701884
+  test_size: 0.3
+  random_state: 42
+
+# Loss function parameters
+loss:
+  cox_weight:  0.6218500527072932
+  edl_weight: 0.29511652499901925
+  focal_weight: 0.981091062236663
+  lamb: 0.002044853196524851
+  focal_alpha: 0.25
+  focal_gamma: 2.0
+
+
+# Scheduler parameters
+scheduler:
+  mode: 'max'
+  factor: 0.49077008510918485
+  patience: 7
+  min_lr: 0.0000005
+
+# Clinical features to use
+clinical_features:
+  - "age_at_prostatectomy"
+  - "primary_gleason"
+  - "secondary_gleason"
+  - "tertiary_gleason"
+  - "ISUP"
+  - "pre_operative_PSA"
+  - "positive_lymph_nodes"
+  - "capsular_penetration"
+  - "positive_surgical_margins"
+  - "invasion_seminal_vesicles"
+  - "lymphovascular_invasion"
+  - "earlier_therapy"
+
+# Device configuration
+device: 'cuda'  # 'cuda' or 'cpu'
+
+# Output settings
+output:
+  save_model: true
+  model_save_path: 'best_model.pth'
+  results_save_path: 'training_results.csv'
+  print_every: 5

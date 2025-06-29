@@ -1,0 +1,37 @@
+# Core Deep Learning
+torch==2.4.1
+torchvision==0.19.1
+torchaudio==2.4.1
+
+# State Space Models
+mamba-ssm==2.2.2
+
+# Evidential Deep Learning
+edl-pytorch==0.0.2
+
+# Survival Analysis
+pycox==0.3.0
+scikit-survival==0.22.2
+
+# Machine Learning
+scikit-learn==1.3.2
+pandas==2.0.3
+numpy==1.24.4
+
+# Hyperparameter Optimization
+optuna==4.2.1
+
+# Configuration & Utilities
+PyYAML==6.0.2
+tqdm==4.67.1
+
+# Visualization (optional)
+matplotlib==3.7.5
+seaborn==0.13.2
+
+# Medical imaging features
+pyradiomics==3.1.0
+simpleitk==2.5.0
+
+# System utilities
+psutil==6.0.0
