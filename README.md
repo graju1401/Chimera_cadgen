@@ -1,4 +1,4 @@
-# Chimera:  Task 1: Multi-Modal MambaFormer for Biochemical Recurrence Prediction
+# Chimera:  Task 1: Uncertainty-aware Multi-Modal MambaFormer for Biochemical Recurrence Prediction
 
 [![Python 3.9](https://img.shields.io/badge/python-3.9-blue.svg)](https://www.python.org/downloads/release/python-390/)
 [![PyTorch](https://img.shields.io/badge/PyTorch-2.4.1-red.svg)](https://pytorch.org/)
