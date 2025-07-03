@@ -1,0 +1,48 @@
+# Device configuration
+device: 'cuda'
+
+# Data paths and configuration
+data:
+  clinical_data_dir: 'data/data'
+  wsi_features_dir: 'data/features/features'
+  max_wsi_patches: 1000
+
+# Model architecture configuration
+model:
+  d_model: 64
+  n_layers: 2
+  d_state: 16
+  d_conv: 4
+  expand: 2
+  n_heads: 4
+  dropout: 0.2
+  max_patches_attention: 1000
+
+# Training configuration
+training:
+  batch_size: 8
+  epochs: 40
+  learning_rate: 0.001
+  weight_decay: 0.0005
+  test_size: 0.2
+  random_state: 42
+  early_stopping_patience: 15
+
+# Loss function configuration
+loss:
+  annealing_step: 3
+  uncertainty_reg: 0.06
+  beta: 0.95
+
+# Learning rate scheduler
+scheduler:
+  factor: 0.45
+  patience: 5
+  min_lr: 0.00001
+
+# Output configuration
+output:
+  save_model: true
+  model_save_path: 'best_model.pth'
+  results_save_path: 'training_results.csv'
+
