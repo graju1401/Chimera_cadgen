@@ -1,0 +1,82 @@
+# Configuration for Trimodal Evidential Learning for HR-NMIBC
+# RNA-seq + Histopathology + Clinical Data
+
+# Data Configuration
+data:
+  data_dir: "data/data"
+  max_wsi_patches: 20000
+  max_genes_attention: 1000
+  max_patches_attention: 5000
+  test_size: 0.3
+  random_state: 42
+
+# Model Architecture
+model:
+  # RNA Encoder
+  rna_encoder:
+    input_dim: 1
+    embed_dim: 128
+    n_layers: 2
+    d_state: 16
+    d_conv: 4
+    expand: 2
+    dropout: 0.4
+  
+  # WSI Encoder
+  wsi_encoder:
+    input_dim: 1024
+    embed_dim: 128
+    n_layers: 2
+    d_state: 16
+    d_conv: 4
+    expand: 2
+    dropout: 0.4
+  
+  # Clinical Encoder
+  clinical_encoder:
+    embed_dim: 128
+    dropout: 0.4
+  
+  # MambaFormer
+  mambaformer:
+    d_model: 128
+    n_layers: 3
+    d_state: 16
+    d_conv: 4
+    expand: 2
+    n_heads: 4
+    dropout: 0.4
+
+# Loss Configuration
+loss:
+  cox_weight: 1.5
+  edl_weight: 0.5
+  focal_weight: 0.3
+  lamb: 0.001
+  focal_alpha: 0.25
+  focal_gamma: 2.0
+
+# Training Configuration
+training:
+  epochs: 50
+  batch_size: 4
+  learning_rate: 0.00005 #2e-5 #
+  weight_decay: 0.0004 #2e-4
+  scheduler:
+    mode: 'max'
+    factor: 0.7
+    patience: 4
+    min_lr: 0.0000005 #5e-7
+  early_stopping:
+    patience: 8
+  grad_clip: 0.5
+
+# Device Configuration
+device: 'cuda'  # Will fallback to 'cpu' if CUDA not available
+
+# Logging
+logging:
+  save_model: true
+  model_path: 'best_hrnmibc_evidential_model.pth'
+  results_path: 'multimodal_hrnmibc_evidential_results.csv'
+  log_interval: 5
