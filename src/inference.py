@@ -129,65 +129,65 @@ class MultiModalInference:
 
 
 
-def prepare_wsi_data_with_slide2vec(self, patient_ids, config_file: str):
-    """
-    Prepares WSI features using Slide2Vec. Automatically generates slide path CSV 
-    and updates the config file before running the full pipeline.
-
-    Args:
-        patient_ids (list): List of patient IDs.
-        config_file (str): Path to base Slide2Vec config YAML file.
-
-    Returns:
-        str: Path to the directory containing aggregated slide-level features.
-    """
-
-    # 1. Generate CSV with slide paths for given patients
-    csv_path = Path(self.data_folder) / "slide_paths.csv"
-    slide_paths = []
-
-    for patient_id in patient_ids:
-        patient_path = os.path.join(self.pathology_path, patient_id)
-        for root, _, files in os.walk(patient_path):
-            for file in files:
-                if file.endswith(".svs") or file.endswith(".tif") or file.endswith(".ndpi"):
-                    slide_paths.append({"slide_path": os.path.join(root, file)})
-
-    if not slide_paths:
-        raise FileNotFoundError("No WSI files found for given patient IDs.")
-
-    df = pd.DataFrame(slide_paths)
-    df.to_csv(csv_path, index=False)
-
-    # 2. Load and modify the config YAML
-    with open(config_file, 'r') as f:
-        cfg_data = yaml.safe_load(f)
-
-    cfg_data["csv"] = str(csv_path)
-
-    # Optional: change output_dir if needed per run
-    output_dir = Path(self.data_folder) / "slide2vec_output"
-    cfg_data["output_dir"] = str(output_dir)
-
-    # 3. Save modified config to a temp file
-    updated_config_path = Path(self.data_folder) / "temp_slide2vec_config.yaml"
-    with open(updated_config_path, 'w') as f:
-        yaml.safe_dump(cfg_data, f)
-
-    # 4. Run the full Slide2Vec pipeline
-    result = subprocess.run([
-        "python", "-m", "slide2vec.main",
-        "--config-file", str(updated_config_path)
-    ])
-    if result.returncode != 0:
-        raise RuntimeError("Slide2Vec pipeline failed.")
-
-    # 5. Return path to final aggregated features
-    agg_features_dir = output_dir / "aggregated_features"
-    if not agg_features_dir.exists():
-        raise FileNotFoundError(f"No aggregated features found in {agg_features_dir}")
-
-    return str(agg_features_dir)
+    def prepare_wsi_data_with_slide2vec(self, patient_ids, config_file: str):
+        """
+        Prepares WSI features using Slide2Vec. Automatically generates slide path CSV 
+        and updates the config file before running the full pipeline.
+    
+        Args:
+            patient_ids (list): List of patient IDs.
+            config_file (str): Path to base Slide2Vec config YAML file.
+    
+        Returns:
+            str: Path to the directory containing aggregated slide-level features.
+        """
+    
+        # 1. Generate CSV with slide paths for given patients
+        csv_path = Path(self.data_folder) / "slide_paths.csv"
+        slide_paths = []
+    
+        for patient_id in patient_ids:
+            patient_path = os.path.join(self.pathology_path, patient_id)
+            for root, _, files in os.walk(patient_path):
+                for file in files:
+                    if file.endswith(".svs") or file.endswith(".tif") or file.endswith(".ndpi"):
+                        slide_paths.append({"slide_path": os.path.join(root, file)})
+    
+        if not slide_paths:
+            raise FileNotFoundError("No WSI files found for given patient IDs.")
+    
+        df = pd.DataFrame(slide_paths)
+        df.to_csv(csv_path, index=False)
+    
+        # 2. Load and modify the config YAML
+        with open(config_file, 'r') as f:
+            cfg_data = yaml.safe_load(f)
+    
+        cfg_data["csv"] = str(csv_path)
+    
+        # Optional: change output_dir if needed per run
+        output_dir = Path(self.data_folder) / "slide2vec_output"
+        cfg_data["output_dir"] = str(output_dir)
+    
+        # 3. Save modified config to a temp file
+        updated_config_path = Path(self.data_folder) / "temp_slide2vec_config.yaml"
+        with open(updated_config_path, 'w') as f:
+            yaml.safe_dump(cfg_data, f)
+    
+        # 4. Run the full Slide2Vec pipeline
+        result = subprocess.run([
+            "python", "-m", "slide2vec.main",
+            "--config-file", str(updated_config_path)
+        ])
+        if result.returncode != 0:
+            raise RuntimeError("Slide2Vec pipeline failed.")
+    
+        # 5. Return path to final aggregated features
+        agg_features_dir = output_dir / "aggregated_features"
+        if not agg_features_dir.exists():
+            raise FileNotFoundError(f"No aggregated features found in {agg_features_dir}")
+    
+        return str(agg_features_dir)
 
     
     def prepare_wsi_data(self, patient_ids):
