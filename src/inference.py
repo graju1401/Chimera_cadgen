@@ -7,6 +7,9 @@ import pandas as pd
 import numpy as np
 import json
 import glob
+import subprocess
+from pathlib import Path
+from slide2vec.utils.config import setup
 from torch.utils.data import DataLoader
 from sklearn.metrics import roc_auc_score, accuracy_score, precision_score, recall_score, f1_score
 from sksurv.metrics import concordance_index_censored
@@ -124,13 +127,7 @@ class MultiModalInference:
         return clinical_df, patient_ids
 
 
-    import os
-import subprocess
-import torch
-import yaml
-import pandas as pd
-from pathlib import Path
-from slide2vec.utils.config import setup
+
 
 def prepare_wsi_data_with_slide2vec(self, patient_ids, config_file: str):
     """
