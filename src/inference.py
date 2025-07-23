@@ -131,101 +131,149 @@ class MultiModalInference:
 
     def prepare_wsi_data_with_slide2vec(self, patient_ids, config_file: str):
         """
-        Prepares WSI features using Slide2Vec. Automatically generates slide path CSV 
-        and updates the config file before running the full pipeline.
+        Prepares WSI data using Slide2Vec, outputting tile-level features.
+    
+        This method automatically generates a slide path CSV and updates the
+        config file before running the feature extraction pipeline. It is
+        designed for tile-level models (e.g., UNI) and returns the path
+        to the directory containing per-slide tile feature files.
     
         Args:
-            patient_ids (list): List of patient IDs.
-            config_file (str): Path to base Slide2Vec config YAML file.
+            patient_ids (list): List of patient IDs to process.
+            config_file (str): Path to the base Slide2Vec config YAML file.
     
         Returns:
-            str: Path to the directory containing aggregated slide-level features.
+            str: Path to the directory containing tile-level features.
+                 This directory will contain files like `[slide_name].pt`,
+                 where each file holds a tensor of features for all tiles
+                 from that slide.
         """
     
-        # 1. Generate CSV with slide paths for given patients
+        # 1. Find all WSI paths and create a CSV with an empty mask column
         csv_path = Path(self.data_folder) / "slide_paths.csv"
-        slide_paths = []
-    
+        wsi_files = []
+
+        print("Searching for WSI files (ignoring masks)...")
         for patient_id in patient_ids:
-            patient_path = os.path.join(self.pathology_path, patient_id)
+            patient_path = Path(self.pathology_path) / patient_id
             for root, _, files in os.walk(patient_path):
                 for file in files:
-                    if file.endswith(".svs") or file.endswith(".tif") or file.endswith(".ndpi"):
-                        slide_paths.append({"slide_path": os.path.join(root, file)})
-    
-        if not slide_paths:
-            raise FileNotFoundError("No WSI files found for given patient IDs.")
-    
-        df = pd.DataFrame(slide_paths)
-        df.to_csv(csv_path, index=False)
-    
+                    file_lower = file.lower()
+                    
+                    # Condition: The file must be a WSI format AND must NOT be a mask file.
+                    is_wsi = file_lower.endswith((".svs", ".ndpi", ".tif"))
+                    is_mask = file_lower.endswith("_tissue.tif")
+                    
+                    if is_wsi and not is_mask:
+                        wsi_path = Path(root) / file
+                        # Add the WSI path and an empty string for the mask path
+                        wsi_files.append({
+                            "wsi_path": str(wsi_path),
+                            "mask_path": ""  # Always provide an empty mask path
+                        })
+ 
+
+        if not wsi_files:
+            raise FileNotFoundError("No WSI files (.svs, .tif, .ndpi) found for the given patient IDs.")
+
+        # Create a DataFrame and save it to CSV with the correct columns
+        df = pd.DataFrame(wsi_files)
+        # Ensure the columns are in the correct order for the slide2vec pipeline
+        df.to_csv(csv_path, index=False, columns=['wsi_path'])
+
+        print(f"Successfully generated CSV with {len(df)} WSI files (no masks) at: {csv_path}")
+            
         # 2. Load and modify the config YAML
         with open(config_file, 'r') as f:
             cfg_data = yaml.safe_load(f)
     
         cfg_data["csv"] = str(csv_path)
     
-        # Optional: change output_dir if needed per run
         output_dir = Path(self.data_folder) / "slide2vec_output"
+        output_dir.mkdir(parents=True, exist_ok=True) # Ensure output dir exists
         cfg_data["output_dir"] = str(output_dir)
     
         # 3. Save modified config to a temp file
         updated_config_path = Path(self.data_folder) / "temp_slide2vec_config.yaml"
         with open(updated_config_path, 'w') as f:
             yaml.safe_dump(cfg_data, f)
-    
-        # 4. Run the full Slide2Vec pipeline
+            
+        # Set the token for the subprocess environment
+        # First, get the token from the environment of THIS script
+        hf_token = os.environ.get("HUGGING_FACE_HUB_TOKEN")
+        if not hf_token:
+            # This check is good, let's keep it.
+            raise ValueError("HUGGING_FACE_HUB_TOKEN environment variable not found.")
+
+        # Create a copy of the current environment for the subprocess
+        sub_env = os.environ.copy()
+        
+        # ** THE FIX: Set BOTH possible environment variable names **
+        # The modern name used by huggingface_hub
+        sub_env["HUGGING_FACE_HUB_TOKEN"] = hf_token
+        # The older/shorter name that some libraries still look for
+        sub_env["HF_TOKEN"] = hf_token
+
+        # 4. Call Slide2Vec pipeline, PASSING THE MODIFIED ENVIRONMENT
+        print(f"Running Slide2Vec feature extraction. Output will be in {output_dir}")
+        
         result = subprocess.run([
             "python", "-m", "slide2vec.main",
             "--config-file", str(updated_config_path)
-        ])
+        ], capture_output=True, text=True, env=sub_env) # <-- The env argument is key
+
         if result.returncode != 0:
-            raise RuntimeError("Slide2Vec pipeline failed.")
-    
-        # 5. Return path to final aggregated features
-        agg_features_dir = output_dir / "aggregated_features"
-        if not agg_features_dir.exists():
-            raise FileNotFoundError(f"No aggregated features found in {agg_features_dir}")
-    
-        return str(agg_features_dir)
+            print("--- Slide2Vec STDOUT ---")
+            print(result.stdout)
+            print("--- Slide2Vec STDERR ---")
+            print(result.stderr)
+            raise RuntimeError(f"Slide2Vec pipeline failed with exit code {result.returncode}.")
+
+        # 5. Return the path to the TILE-LEVEL features
+
+        # Find the latest run directory created by slide2vec inside the output_dir.
+        # This handles the timestamped folder (e.g., '2025-07-19_11_21').
+        try:
+            run_dirs = [d for d in output_dir.iterdir() if d.is_dir()]
+            if not run_dirs:
+                # This error will be caught by the except block below
+                raise FileNotFoundError("No run directories found in the output directory.")
+
+            # Find the most recently modified directory, which corresponds to the latest run
+            latest_run_dir = max(run_dirs, key=os.path.getmtime)
+            
+            # Construct the correct path to the features
+            tile_features_dir = latest_run_dir / "features"
+            print(f"Searching for features in latest run directory: {tile_features_dir}")
+
+        except (FileNotFoundError, ValueError) as e:
+            # This block will catch errors if output_dir is empty or doesn't exist.
+            print("--- Slide2Vec STDOUT ---")
+            print(result.stdout)
+            print("--- Slide2Vec STDERR ---")
+            print(result.stderr)
+            raise FileNotFoundError(
+                f"Could not locate a run directory inside '{output_dir}'. "
+                f"The slide2vec pipeline may have failed to produce output. Original error: {e}"
+            )
+
+        # Now, check if the final, correctly identified path exists
+        if not tile_features_dir.exists():
+            print("--- Slide2Vec STDOUT ---")
+            print(result.stdout)
+            print("--- Slide2Vec STDERR ---")
+            print(result.stderr)
+            raise FileNotFoundError(
+                f"Tile-level features directory not found at the expected path: '{tile_features_dir}'. "
+                "Check the Slide2Vec output and config. The pipeline might have failed "
+                "or the output structure might have changed."
+            )
+
+        print(f"Successfully generated tile-level features in: {tile_features_dir}")
+        return str(tile_features_dir)
 
     
-    def prepare_wsi_data(self, patient_ids):
-        """Prepare WSI pathology features"""
-        wsi_features_dir = os.path.join(self.data_folder, "wsi_features")
-        os.makedirs(wsi_features_dir, exist_ok=True)
-        
-        for patient_id in patient_ids:
-            patient_path = os.path.join(self.pathology_path, patient_id)
-            
-            if os.path.exists(patient_path):
-                pt_files = glob.glob(os.path.join(patient_path, "*.pt"))
-                
-                all_features = []
-                for pt_file in pt_files:
-                    try:
-                        features = torch.load(pt_file, map_location='cpu')
-                        
-                        if isinstance(features, dict):
-                            features = list(features.values())[0]
-                        if isinstance(features, torch.Tensor):
-                            features = features.numpy()
-                        if features.ndim == 2 and features.shape[1] == 1024:
-                            all_features.append(features)
-                    except:
-                        continue
-                
-                if all_features:
-                    combined = np.vstack(all_features)
-                    output_file = os.path.join(wsi_features_dir, f"{patient_id}_features.pt")
-                    torch.save(torch.tensor(combined), output_file)
-                else:
-                    # Dummy features
-                    dummy = np.zeros((100, 1024))
-                    output_file = os.path.join(wsi_features_dir, f"{patient_id}_dummy.pt")
-                    torch.save(torch.tensor(dummy), output_file)
-        
-        return wsi_features_dir
+
     
     def load_model(self, clinical_dim, mri_dim):
         """Load model"""
