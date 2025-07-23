@@ -1,4 +1,4 @@
-csv: "/home/local-admin/Hesam/VS/Chimera_cadgen-main/tif_paths.csv"
+csv: "tif_paths.csv"
 
 output_dir: "output" # output directory
 
