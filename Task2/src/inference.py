@@ -324,12 +324,18 @@ def main():
     except Exception as e:
         print(f"Error loading patient IDs: {e}")
         return
+
+    # Extract wsi features
+
+    wsi_features_dir = prepare_wsi_data_with_slide2vec(all_patient_ids, 'uni.yaml')
+
+    
     
     # Create dataset (using all patients)
     print("Creating dataset...")
     try:
         dataset = BinaryBCGDataset(
-            wsi_features_dir=config['data']['wsi_features_dir'],
+            wsi_features_dir=wsi_features_dir,
             clinical_data_dir=config['data']['clinical_data_dir'],
             patient_ids=all_patient_ids,
             max_patches=config['data']['max_wsi_patches'],
